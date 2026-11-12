@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { calculate, cloneConfig, configUrl, csv, readUrl, validateConfig } from "./model";
+import {
+  calculate,
+  cloneConfig as clone,
+  configUrl,
+  csv,
+  defaultConfig,
+  defaultConfigV1,
+  readUrl,
+  validateConfig,
+} from "./model";
+
+// The version 1 engine is frozen: these expectations must never change.
+const cloneConfig = () => clone(defaultConfigV1);
 
 function cachedConfig() {
   const c = cloneConfig();
@@ -143,7 +155,9 @@ describe("complete, versioned links", () => {
     const invalid = ["#c=%%%", " #c=e30="];
     for (const hash of invalid)
       expect(readUrl("https://example.com/" + hash.trim()).error).toBeTruthy();
-    expect(() => validateConfig({ ...cloneConfig(), version: 2 })).toThrow(/version/);
+    expect(() => validateConfig({ ...cloneConfig(), version: 3 })).toThrow(/version/);
+    // A version 2 link must carry the version 2 coefficients.
+    expect(() => validateConfig({ ...cloneConfig(), version: 2 })).toThrow(/costs/);
     expect(() => validateConfig({ ...cloneConfig(), dpr: NaN })).toThrow();
     expect(() => validateConfig({ ...cloneConfig(), width: 0 })).toThrow();
     expect(() => validateConfig({ ...cloneConfig(), costs: {} })).toThrow();
@@ -155,5 +169,46 @@ describe("complete, versioned links", () => {
     expect(out).toContain('"Quoted ""test"", scenario"');
     expect(out).toContain('"Upsampled SSGI"');
     expect(out).toContain('"Bytes/frame"');
+  });
+});
+describe("version 2: one horizon pass for AO and GI", () => {
+  const full = 1920 * 1080;
+  it("replaces the separate GTAO and SSGI passes when SSGI is on", () => {
+    const r = calculate(clone());
+    expect(r.passes.map((p) => p.id)).not.toContain("gtao");
+    expect(r.passes.map((p) => p.id)).not.toContain("gtaoUpsample");
+    expect(r.passes.map((p) => p.id)).not.toContain("ssgiTrace");
+    // Scene: 22 + 7 + SSR upsample 80 + AO/GI upsample 76 + beauty 80 + 23 + 36 + 12;
+    // half grid: SSR 268 + 252, reprojection 64, horizon 268, accumulation 40.
+    expect(r.bytesPerFrame).toBe(full * 336 + (full / 4) * 892);
+    // Scene: 16 + 8 + 4 + 5 + upsampled SSR 8 + upsampled AO/GI 7 + TRAA 16;
+    // half grid: SSR 24, AO/GI 14, reprojected radiance 8.
+    expect(r.memoryBytes).toBe(full * 64 + (full / 4) * 46);
+    expect(r.bytesPerFrame).toBeLessThan(calculate(cloneConfig()).bytesPerFrame);
+  });
+  it("falls back to the AO-only pass when SSGI is off, and ignores the AO toggle when it is on", () => {
+    const c = clone();
+    c.gtao = false;
+    expect(calculate(c).bytesPerFrame).toBe(calculate(clone()).bytesPerFrame);
+    c.gtao = true;
+    c.ssgi = false;
+    const aoOnly = calculate(c);
+    expect(aoOnly.passes.map((p) => p.id)).toContain("gtao");
+    expect(aoOnly.passes.map((p) => p.id)).not.toContain("reproject");
+    // Without SSGI both versions run the same standalone AO pass.
+    const v1 = cloneConfig();
+    v1.ssgi = false;
+    expect(aoOnly.bytesPerFrame).toBe(calculate(v1).bytesPerFrame);
+    expect(aoOnly.memoryBytes).toBe(calculate(v1).memoryBytes);
+  });
+  it("round-trips both versions without migrating either", () => {
+    for (const c of [clone(), cloneConfig()]) {
+      const parsed = readUrl(configUrl(c, true, "https://example.com/"));
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.config).toEqual(c);
+    }
+    expect(defaultConfig.version).toBe(2);
+    expect(csv(cloneConfig())).toContain('"1.0.0"');
+    expect(csv(clone())).toContain('"Upsampled AO + GI"');
   });
 });
