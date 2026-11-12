@@ -440,7 +440,7 @@ export default function App() {
                 <p>{number(result.bytesPerFrame / 1e6)} MB every frame</p>
               </div>
               <div className="metric">
-                <span>ALLOCATED GPU MEMORY</span>
+                <span>MODELED GPU MEMORY</span>
                 <strong data-testid="total-memory">
                   {number(result.memoryBytes / 1e6)}
                   <small>MB</small>
@@ -566,6 +566,8 @@ export default function App() {
                   <p className="table-note">
                     Bandwidth = working pixels × logical bytes per pixel × fps. Effect scales apply
                     to the scene; reconstruction and output use their listed grids.
+                    {config.aa === "taau" &&
+                      " TAAU traffic is a provisional allowance, not a measured implementation cost."}
                   </p>
                 </>
               ) : (
