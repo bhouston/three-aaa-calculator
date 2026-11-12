@@ -578,7 +578,7 @@ export default function App() {
                   keeps a nominal fixed material/cache budget and adds one HDR GI read when SSGI is
                   on. No live shadows, MSAA or bloom are included.
                 </p>
-                <h3>Traffic · bytes per working pixel</h3>
+                <h3>Bandwidth · bytes per working pixel</h3>
                 <div className="assumption-grid">
                   {Object.entries(costLabels).map(([key, label]) => (
                     <NumberField
