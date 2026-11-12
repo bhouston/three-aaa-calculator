@@ -1,14 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  calculate,
-  configUrl,
-  costLabels,
-  csv,
-  memoryLabels,
-  MODEL_REVISION,
-  readUrl,
-} from "./model";
-import type { Config, CostKey, MemoryKey } from "./model";
+import { calculate, configUrl, csv, labelsFor, modelRevision, readUrl } from "./model";
+import type { Config } from "./model";
 
 const number = (value: number, digits = 2) =>
   new Intl.NumberFormat("en", {
@@ -163,6 +155,9 @@ export default function App() {
   const resultsOnly = initial.resultsOnly;
   const shareRef = useRef<HTMLTextAreaElement>(null);
   const result = useMemo(() => calculate(config), [config]);
+  const labels = labelsFor(config);
+  // Version 2: SSGI's horizon pass already produces AO, so the separate AO pass is unused.
+  const merged = config.version !== 1 && config.ssgi;
   const update = <K extends keyof Config>(key: K, value: Config[K]) =>
     setConfig((c) => ({ ...c, [key]: value }));
   const editUrl = configUrl(config, false);
@@ -221,7 +216,7 @@ export default function App() {
             </span>
           </a>
           <div className="top-links">
-            <span className="model-pill">MODEL {MODEL_REVISION}</span>
+            <span className="model-pill">MODEL {modelRevision(config)}</span>
             {!resultsOnly && (
               <a
                 href="https://github.com/bhouston/three-aaa-calculator"
@@ -353,7 +348,10 @@ export default function App() {
                   <h2>Lighting passes</h2>
                 </div>
                 {(["ssr", "ssgi", "gtao"] as const).map((id) => (
-                  <div key={id} className={`effect ${config[id] ? "" : "disabled"}`}>
+                  <div
+                    key={id}
+                    className={`effect ${config[id] && !(id === "gtao" && merged) ? "" : "disabled"}`}
+                  >
                     <Toggle
                       label={id.toUpperCase()}
                       checked={config[id]}
@@ -361,12 +359,17 @@ export default function App() {
                       detail={
                         {
                           ssr: "Screen-space reflections",
-                          ssgi: "Screen-space diffuse bounce",
-                          gtao: "Ground-truth ambient occlusion",
+                          ssgi:
+                            config.version === 1
+                              ? "Screen-space diffuse bounce"
+                              : "Horizon pass: diffuse bounce + AO",
+                          gtao: merged
+                            ? "Included in the SSGI horizon pass"
+                            : "Ground-truth ambient occlusion",
                         }[id]
                       }
                     />
-                    {config[id] && (
+                    {config[id] && !(id === "gtao" && merged) && (
                       <>
                         <ScaleField
                           label={`${id.toUpperCase()} resolution`}
@@ -375,7 +378,11 @@ export default function App() {
                         />
                         {id !== "gtao" && (
                           <Toggle
-                            label="Temporal + spatial denoise"
+                            label={
+                              id === "ssgi" && merged
+                                ? "Temporal accumulation"
+                                : "Temporal + spatial denoise"
+                            }
                             checked={config[`${id}Denoise`]}
                             onChange={(b) => update(`${id}Denoise`, b)}
                           />
@@ -570,32 +577,45 @@ export default function App() {
                   target; every materialized upsample has its own allocation. This explicit
                   inventory is more complete than the article's original rough totals.
                 </p>
-                <p>
-                  SSGI: one ray with 32 depth fetches, temporal accumulation and two five-tap
-                  spatial filters. Raw GI, two histories and scratch use four RGBA16F targets.
-                  Upsampling uses four GI/depth/normal taps plus center guides and an output write.
-                  The proposed model is not a measurement of the current SSGI addon. Forward beauty
-                  keeps a nominal fixed material/cache budget and adds one HDR GI read when SSGI is
-                  on. No live shadows, MSAA or bloom are included.
-                </p>
+                {config.version === 1 ? (
+                  <p>
+                    SSGI: one ray with 32 depth fetches, temporal accumulation and two five-tap
+                    spatial filters. Raw GI, two histories and scratch use four RGBA16F targets.
+                    Upsampling uses four GI/depth/normal taps plus center guides and an output
+                    write. The proposed model is not a measurement of the current SSGI addon.
+                    Forward beauty keeps a nominal fixed material/cache budget and adds one HDR GI
+                    read when SSGI is on. No live shadows, MSAA or bloom are included.
+                  </p>
+                ) : (
+                  <p>
+                    SSGI is one horizon (visibility-bitmask) pass that returns diffuse bounce, AO
+                    and a bent normal together, so GTAO runs separately only when SSGI is off. It
+                    budgets 24 depth taps, with color and normal reads on half of them, against a
+                    previous-frame radiance buffer reprojected once per frame. One temporal history
+                    replaces the dedicated spatial filters, and AO and GI share one upsample. These
+                    are estimates from the structure of Three.js's SSGINode, not measurements.
+                    Forward beauty adds one GI read when SSGI is on. No live shadows, MSAA or bloom
+                    are included.
+                  </p>
+                )}
                 <h3>Bandwidth · bytes per working pixel</h3>
                 <div className="assumption-grid">
-                  {Object.entries(costLabels).map(([key, label]) => (
+                  {Object.entries(labels.costs).map(([key, label]) => (
                     <NumberField
                       key={key}
                       label={label}
-                      value={config.costs[key as CostKey]}
+                      value={config.costs[key]!}
                       onChange={(n) => update("costs", { ...config.costs, [key]: n })}
                     />
                   ))}
                 </div>
                 <h3>Memory usage · bytes per allocation pixel</h3>
                 <div className="assumption-grid">
-                  {Object.entries(memoryLabels).map(([key, label]) => (
+                  {Object.entries(labels.memory).map(([key, label]) => (
                     <NumberField
                       key={key}
                       label={label}
-                      value={config.memory[key as MemoryKey]}
+                      value={config.memory[key]!}
                       onChange={(n) => update("memory", { ...config.memory, [key]: n })}
                     />
                   ))}

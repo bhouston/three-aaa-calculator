@@ -1,6 +1,8 @@
-export const MODEL_VERSION = 1;
-export const MODEL_REVISION = "1.0.0";
-export const costLabels = {
+export const MODEL_VERSION = 2;
+// Version 1 links keep the version 1 engine: separate GTAO and one-ray SSGI passes.
+// Version 2 merges them into one horizon (visibility-bitmask) pass whenever SSGI is on.
+export const modelRevision = (c: { version: number }) => (c.version === 1 ? "1.0.0" : "2.0.0");
+const costLabelsV1 = {
   gbuffer: "G-buffer prepass",
   motion: "Depth + motion prepass",
   hiz: "Hi-Z build",
@@ -19,8 +21,28 @@ export const costLabels = {
   output: "Tone map + output",
   spatialOutput: "Spatial AA + tone map + output",
 } as const;
-export type CostKey = keyof typeof costLabels;
-export const memoryLabels = {
+const costLabelsV2 = {
+  gbuffer: costLabelsV1.gbuffer,
+  motion: costLabelsV1.motion,
+  hiz: costLabelsV1.hiz,
+  gtao: "Horizon AO + filter (AO only)",
+  ssrTrace: costLabelsV1.ssrTrace,
+  ssrDenoise: costLabelsV1.ssrDenoise,
+  reproject: "Previous-frame radiance reprojection",
+  horizonGi: "Horizon AO + GI trace",
+  ssgiDenoise: "AO + GI temporal accumulation",
+  gtaoUpsample: "AO joint bilateral upsample",
+  ssrUpsample: costLabelsV1.ssrUpsample,
+  ssgiUpsample: "AO + GI joint bilateral upsample",
+  beauty: costLabelsV1.beauty,
+  transparent: costLabelsV1.transparent,
+  traa: costLabelsV1.traa,
+  taau: costLabelsV1.taau,
+  output: costLabelsV1.output,
+  spatialOutput: costLabelsV1.spatialOutput,
+} as const;
+export type CostKey = keyof typeof costLabelsV1 | keyof typeof costLabelsV2;
+const memoryLabelsV1 = {
   gbuffer: "G-buffer",
   depth: "Depth",
   motion: "Motion vectors",
@@ -33,9 +55,21 @@ export const memoryLabels = {
   traa: "TRAA history + resolve",
   taau: "TAAU color, lock + resolve",
 } as const;
-export type MemoryKey = keyof typeof memoryLabels;
+const memoryLabelsV2 = {
+  ...memoryLabelsV1,
+  ssgiWorking: "AO + GI working set (accumulated)",
+  gtaoWorking: "AO working set (AO only)",
+  aoGi: "AO + GI + bent normal signal",
+  gi: "GI color (R11G11B10)",
+  reproject: "Reprojected previous radiance",
+} as const;
+export type MemoryKey = keyof typeof memoryLabelsV2;
+export const labelsFor = (c: { version: number }) =>
+  c.version === 1
+    ? { costs: costLabelsV1 as Record<string, string>, memory: memoryLabelsV1 as Record<string, string> }
+    : { costs: costLabelsV2 as Record<string, string>, memory: memoryLabelsV2 as Record<string, string> };
 export interface Config {
-  version: 1;
+  version: 1 | 2;
   title: string;
   width: number;
   height: number;
@@ -52,10 +86,10 @@ export interface Config {
   ssrScale: number;
   ssgiScale: number;
   gtaoScale: number;
-  costs: Record<CostKey, number>;
-  memory: Record<MemoryKey, number>;
+  costs: Record<string, number>;
+  memory: Record<string, number>;
 }
-export const defaultConfig: Config = {
+export const defaultConfigV1: Config = {
   version: 1,
   title: "Lighting budget",
   width: 1920,
@@ -106,6 +140,37 @@ export const defaultConfig: Config = {
     taau: 24,
   },
 };
+// Horizon AO + GI defaults, in bytes per effect pixel (SSGINode's default 1 slice x 12 steps x 2 sides):
+// trace 268 = center depth gather + normal 20, 24 depth taps 96, color 8 and normal 4 on the half
+// of the taps that add visible sectors 144, GI + AO + bent normal write 8.
+// reproject 64 = motion 4, depth 4, four depth-validated history taps 48, write 8.
+// accumulation 40 = current + history signal 14, motion, depth and previous depth 12, write 7, rounded up.
+// upsample 76 = four taps of signal, depth and normal 60, center guides 8, write 7, rounded up.
+export const defaultConfig: Config = {
+  ...defaultConfigV1,
+  version: 2,
+  costs: {
+    gbuffer: 22,
+    motion: 10,
+    hiz: 7,
+    gtao: 124,
+    ssrTrace: 268,
+    ssrDenoise: 252,
+    reproject: 64,
+    horizonGi: 268,
+    ssgiDenoise: 40,
+    gtaoUpsample: 60,
+    ssrUpsample: 80,
+    ssgiUpsample: 76,
+    beauty: 76,
+    transparent: 23,
+    traa: 36,
+    taau: 160,
+    output: 12,
+    spatialOutput: 24,
+  },
+  memory: { ...defaultConfigV1.memory, ssgiWorking: 14, aoGi: 7, gi: 4, reproject: 8 },
+};
 export const cloneConfig = (config: Config = defaultConfig): Config => structuredClone(config);
 export interface Size {
   width: number;
@@ -113,7 +178,7 @@ export interface Size {
   pixels: number;
 }
 export interface Pass {
-  id: CostKey;
+  id: string;
   label: string;
   size: Size;
   coefficient: number;
@@ -141,16 +206,20 @@ export function calculate(c: Config) {
   const ssgi = scaledSize(scene.width, scene.height, c.ssgiScale);
   const gtao = scaledSize(scene.width, scene.height, c.gtaoScale);
   const effects = c.ssr || c.ssgi || c.gtao;
+  const labels = labelsFor(c).costs;
+  // Version 2: the SSGI horizon search already yields AO, so a separate AO pass exists only without SSGI.
+  const horizon = c.version !== 1 && c.ssgi;
+  const ao = c.gtao && !horizon;
   const temporal = c.aa === "traa" || c.aa === "taau";
   const histories = temporal || (c.ssr && c.ssrDenoise) || (c.ssgi && c.ssgiDenoise);
   const passes: Pass[] = [];
   const resources: Resource[] = [];
   function pass(id: CostKey, size: Size, group: string, extra = 0) {
-    const coefficient = c.costs[id] + extra;
+    const coefficient = c.costs[id]! + extra;
     const bytesPerFrame = size.pixels * coefficient;
     passes.push({
       id,
-      label: costLabels[id],
+      label: labels[id]!,
       size,
       coefficient,
       bytesPerFrame,
@@ -167,31 +236,31 @@ export function calculate(c: Config) {
       "gbuffer",
       "Shared G-buffer",
       scene,
-      c.memory.gbuffer,
+      c.memory.gbuffer!,
       "Depth, normals, material and motion; counted once.",
     );
   } else {
-    resource("depth", "Scene depth", scene, c.memory.depth);
+    resource("depth", "Scene depth", scene, c.memory.depth!);
     if (temporal) {
       pass("motion", scene, "shared");
-      resource("motion", "Motion vectors", scene, c.memory.motion);
+      resource("motion", "Motion vectors", scene, c.memory.motion!);
     }
   }
-  resource("beauty", "HDR beauty", scene, c.memory.hdr);
-  if (histories) resource("previousDepth", "Shared previous depth", scene, c.memory.previousDepth);
+  resource("beauty", "HDR beauty", scene, c.memory.hdr!);
+  if (histories) resource("previousDepth", "Shared previous depth", scene, c.memory.previousDepth!);
   if (c.ssr) {
     pass("hiz", scene, "ssr");
     resource(
       "hiz",
       "Hi-Z pyramid",
       scene,
-      c.memory.hiz,
+      c.memory.hiz!,
       "Approximate bytes per base pixel, including mips.",
     );
   }
-  if (c.gtao) {
+  if (ao) {
     pass("gtao", gtao, "gtao");
-    resource("gtao", "GTAO signal + filter scratch", gtao, c.memory.gtaoWorking);
+    resource("gtao", "GTAO signal + filter scratch", gtao, c.memory.gtaoWorking!);
   }
   if (c.ssr) {
     pass("ssrTrace", ssr, "ssr");
@@ -200,38 +269,63 @@ export function calculate(c: Config) {
       "ssr",
       "SSR working set",
       ssr,
-      c.ssrDenoise ? c.memory.ssrWorking : c.memory.hdr,
+      (c.ssrDenoise ? c.memory.ssrWorking : c.memory.hdr)!,
       c.ssrDenoise
         ? "Raw, temporal/spatial working storage; no inter-effect aliasing."
         : "Raw signal only.",
     );
   }
-  if (c.ssgi) {
+  if (horizon) {
+    pass("reproject", ssgi, "ssgi");
+    resource(
+      "reproject",
+      "Reprojected previous radiance",
+      ssgi,
+      c.memory.reproject!,
+      "Previous beauty aligned to this frame once, so horizon taps read it directly.",
+    );
+    pass("horizonGi", ssgi, "ssgi");
+    if (c.ssgiDenoise) pass("ssgiDenoise", ssgi, "ssgi");
+    resource(
+      "ssgi",
+      "AO + GI working set",
+      ssgi,
+      (c.ssgiDenoise ? c.memory.ssgiWorking : c.memory.aoGi)!,
+      "GI (R11G11B10), AO and bent normal; one temporal history when accumulated.",
+    );
+  } else if (c.ssgi) {
     pass("ssgiTrace", ssgi, "ssgi");
     if (c.ssgiDenoise) pass("ssgiDenoise", ssgi, "ssgi");
     resource(
       "ssgi",
       "SSGI working set",
       ssgi,
-      c.ssgiDenoise ? c.memory.ssgiWorking : c.memory.hdr,
+      (c.ssgiDenoise ? c.memory.ssgiWorking : c.memory.hdr)!,
       "Raw GI, ping-pong temporal histories and spatial scratch.",
     );
   }
   for (const [on, size, id, name, bpp, group] of [
-    [c.gtao, gtao, "gtaoUpsample", "Upsampled GTAO", c.memory.depth, "gtao"],
-    [c.ssr, ssr, "ssrUpsample", "Upsampled SSR", c.memory.hdr, "ssr"],
-    [c.ssgi, ssgi, "ssgiUpsample", "Upsampled SSGI", c.memory.hdr, "ssgi"],
+    [ao, gtao, "gtaoUpsample", "Upsampled GTAO", c.memory.depth!, "gtao"],
+    [c.ssr, ssr, "ssrUpsample", "Upsampled SSR", c.memory.hdr!, "ssr"],
+    [
+      c.ssgi,
+      ssgi,
+      "ssgiUpsample",
+      horizon ? "Upsampled AO + GI" : "Upsampled SSGI",
+      (horizon ? c.memory.aoGi : c.memory.hdr)!,
+      "ssgi",
+    ],
   ] as const) {
     if (on && (size.width !== scene.width || size.height !== scene.height)) {
       pass(id, scene, group);
       resource(id, name, scene, bpp, "Materialized at scene resolution before shading.");
     }
   }
-  pass("beauty", scene, "beauty", c.ssgi ? c.memory.hdr : 0);
+  pass("beauty", scene, "beauty", horizon ? c.memory.gi! : c.ssgi ? c.memory.hdr! : 0);
   if (c.transparent) pass("transparent", scene, "beauty");
   if (c.aa === "traa") {
     pass("traa", scene, "temporal");
-    resource("traa", "TRAA history + resolve", scene, c.memory.traa);
+    resource("traa", "TRAA history + resolve", scene, c.memory.traa!);
   }
   if (c.aa === "taau") {
     pass("taau", canvas, "temporal");
@@ -239,7 +333,7 @@ export function calculate(c: Config) {
       "taau",
       "TAAU color, lock + resolve",
       canvas,
-      c.memory.taau,
+      c.memory.taau!,
       "Output-sized. Traffic coefficient is a provisional estimate.",
     );
   }
@@ -264,8 +358,9 @@ export function calculate(c: Config) {
 export function validateConfig(value: unknown): Config {
   if (!value || typeof value !== "object") throw new Error("The configuration is not an object.");
   const c = value as Record<string, unknown>;
-  if (c.version !== 1) throw new Error("This link uses an unsupported model version.");
-  const result = cloneConfig();
+  if (c.version !== 1 && c.version !== 2)
+    throw new Error("This link uses an unsupported model version.");
+  const result = cloneConfig(c.version === 1 ? defaultConfigV1 : defaultConfig);
   for (const key of Object.keys(result) as (keyof Config)[]) {
     const v = c[key];
     const fallback = result[key];
@@ -345,7 +440,7 @@ export function csv(config: Config) {
   const r = calculate(config);
   const quote = (x: unknown) => `"${String(x).replaceAll('"', '""')}"`;
   const rows: unknown[][] = [
-    ["Model revision", MODEL_REVISION],
+    ["Model revision", modelRevision(config)],
     ["Calculation", config.title],
     ["Target FPS", config.fps],
     ["Memory bandwidth (GB/s)", r.gbps],

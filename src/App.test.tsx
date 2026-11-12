@@ -38,7 +38,8 @@ describe("editor and embed use the same calculation", () => {
     const before = Number(screen.getByTestId("total-bandwidth").textContent!.replace("GB/s", ""));
     fireEvent.click(screen.getByRole("checkbox", { name: "SSGI" }));
     const after = Number(screen.getByTestId("total-bandwidth").textContent!.replace("GB/s", ""));
-    expect(before - after).toBeCloseTo(23.14, 1);
+    // The horizon AO + GI pass goes, and the standalone AO pass takes over: (173 - 91) B/pixel.
+    expect(before - after).toBeCloseTo(10.2, 1);
     await waitFor(() => expect(readUrl(window.location.href).config.ssgi).toBe(false));
     fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
     expect(screen.queryByText("Upsampled SSGI")).toBeNull();
