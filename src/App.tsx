@@ -182,31 +182,32 @@ export default function App() {
     .filter((g) => g.gbps > 0);
   return (
     <div className={resultsOnly ? "app embedded" : "app"}>
-      <header className="topbar">
-        <a className="brand" href={resultsOnly ? editUrl : window.location.pathname}>
-          <span className="brand-mark">△</span>
-          <span>
-            THREE <b>AAA</b>
-            <small>CALCULATOR</small>
-          </span>
-        </a>
-        <div className="top-links">
-          <span className="model-pill">MODEL {MODEL_REVISION}</span>
-          {!resultsOnly && (
-            <a
-              href="https://github.com/bhouston/three-aaa-calculator"
-              target="_blank"
-              rel="noreferrer"
-            >
-              GitHub ↗
-            </a>
-          )}
-        </div>
-      </header>
+      {!resultsOnly && (
+        <header className="topbar">
+          <a className="brand" href={window.location.pathname}>
+            <span className="brand-mark">△</span>
+            <span>
+              THREE <b>AAA</b>
+              <small>CALCULATOR</small>
+            </span>
+          </a>
+          <div className="top-links">
+            <span className="model-pill">MODEL {MODEL_REVISION}</span>
+            {!resultsOnly && (
+              <a
+                href="https://github.com/bhouston/three-aaa-calculator"
+                target="_blank"
+                rel="noreferrer"
+              >
+                GitHub ↗
+              </a>
+            )}
+          </div>
+        </header>
+      )}
       <main>
         <section className="intro">
           <div>
-            <p className="eyebrow">RENDERING / MEMORY & BANDWIDTH</p>
             <h1>
               {resultsOnly ? (
                 config.title
@@ -226,7 +227,7 @@ export default function App() {
           </div>
           {resultsOnly ? (
             <a className="button primary" href={editUrl} target="_blank" rel="noreferrer">
-              Open interactive calculator ↗
+              Edit ↗
             </a>
           ) : (
             <div className="intro-index">
@@ -366,39 +367,24 @@ export default function App() {
           <div className="results">
             <section className="summary" aria-label="Totals">
               <div className="metric dark">
-                <span>TOTAL LOGICAL TRAFFIC</span>
+                <span>Memory Bandwidth</span>
                 <strong data-testid="total-bandwidth">
                   {number(result.gbps)}
                   <small>GB/s</small>
                 </strong>
-                <p>{number(result.bytesPerFrame / 1e6)} MB every frame</p>
               </div>
               <div className="metric">
-                <span>MODELED GPU MEMORY</span>
+                <span>Memory Usage</span>
                 <strong data-testid="total-memory">
                   {number(result.memoryBytes / 1e6)}
                   <small>MB</small>
                 </strong>
-                <p>{result.resources.length} pipeline allocations</p>
-              </div>
-              <div className="metric">
-                <span>SCENE PIXELS</span>
-                <strong>
-                  {number(result.scene.pixels / 1e6, result.scene.pixels < 1e6 ? 3 : 2)}
-                  <small>M</small>
-                </strong>
-                <p>
-                  {number((result.scene.pixels / result.canvas.pixels) * 100, 0)}% of the canvas
-                </p>
               </div>
             </section>
 
             <section className="panel breakdown">
               <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">THE COST OF A FRAME</p>
-                  <h2>Follow the resources.</h2>
-                </div>
+                <h2>The Cost of a Frame</h2>
                 <div className="tabs" role="tablist" aria-label="Result breakdown">
                   <button
                     role="tab"
@@ -475,12 +461,11 @@ export default function App() {
                       </tfoot>
                     </table>
                   </div>
-                  <p className="table-note">
-                    Bandwidth = working pixels × logical bytes per pixel × fps. Effect scales apply
-                    to the scene; reconstruction and output use their listed grids.
-                    {config.aa === "taau" &&
-                      " TAAU traffic is a provisional estimate, not a measured implementation cost."}
-                  </p>
+                  {config.aa === "taau" && (
+                    <p className="table-note">
+                      TAAU traffic is a provisional estimate, not a measured implementation cost.
+                    </p>
+                  )}
                 </>
               ) : (
                 <>
@@ -526,7 +511,6 @@ export default function App() {
             {!resultsOnly && (
               <section className="panel share">
                 <div>
-                  <p className="eyebrow">MAKE IT REPRODUCIBLE</p>
                   <h2>Share a calculation.</h2>
                   <p>Every setting and coefficient travels with the link.</p>
                 </div>
@@ -638,20 +622,6 @@ export default function App() {
             )}
           </div>
         </div>
-        <footer>
-          <span>
-            THREE AAA CALCULATOR <b> / </b> MODEL {MODEL_REVISION}
-          </span>
-          <div>
-            <a
-              href="https://ben3d.ca/blog/aaa-quality-on-a-web-budget"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Read the article ↗
-            </a>
-          </div>
-        </footer>
       </main>
     </div>
   );

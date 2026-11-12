@@ -9,7 +9,7 @@ Configure canvas pixel ratio, internal scene scale, independent SSR/SSGI/GTAO re
 ## Editor and results-only embeds
 
 - **Copy editable link** preserves the scenario and opens all controls.
-- **Copy results link** opens the same scenario without editing controls, with a link to its full editor.
+- **Copy results link** opens the same calculation with two compact summary cards and the pass breakdown, without navigation or a footer. **Edit ↗** opens its full editor.
 - **Copy embed HTML** creates an iframe for the results-only view.
 
 The URL fragment contains the entire versioned configuration: toggles, dimensions, scales, coefficients, memory formats/working sets. An embed carries its own complete calculation inputs. URLs are UTF-8/base64url encoded and validated before use. Invalid or unsupported links show a notice and fall back to the default; they never silently migrate to another model version. `MODEL_REVISION` identifies this implementation. Any future change to the meaning of an encoded field or calculation must introduce a new configuration/model version and retain the old engine for existing links.

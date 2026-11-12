@@ -108,12 +108,6 @@ main {
   align-items: center;
   padding: 48px 0 38px;
 }
-.eyebrow {
-  font: 10px var(--mono);
-  letter-spacing: 0.12em;
-  color: #73836f;
-  margin: 0 0 13px;
-}
 h1 {
   font-size: clamp(30px, 3.2vw, 48px);
   letter-spacing: -0.055em;
@@ -320,19 +314,19 @@ h2 {
 }
 .summary {
   display: grid;
-  grid-template-columns: 1.3fr 1.2fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 .metric {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 22px 20px;
+  padding: 14px 16px;
   min-width: 0;
 }
 .metric > span {
-  font: 8px var(--mono);
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 500;
   color: #6a7b62;
   white-space: nowrap;
 }
@@ -341,7 +335,7 @@ h2 {
   font: 500 clamp(25px, 2.7vw, 37px) var(--mono);
   letter-spacing: -0.06em;
   line-height: 1;
-  margin: 21px 0 14px;
+  margin: 8px 0 0;
   white-space: nowrap;
 }
 .metric strong small {
@@ -349,12 +343,6 @@ h2 {
   letter-spacing: -0.02em;
   color: #7c8d72;
   margin-left: 6px;
-}
-.metric p {
-  font-size: 10px;
-  color: #8c977f;
-  margin: 0;
-  line-height: 1.4;
 }
 .metric.dark {
   background: #1c362c;
@@ -369,9 +357,6 @@ h2 {
 }
 .metric.dark small {
   color: #a4bb90;
-}
-.metric.dark p {
-  color: #b3c0a3;
 }
 .panel {
   background: #fff;
@@ -521,7 +506,7 @@ tfoot td:first-child {
 .share h2 {
   font-size: 20px;
 }
-.share p:not(.eyebrow) {
+.share p {
   color: #839273;
   font-size: 11px;
 }
@@ -601,33 +586,6 @@ tfoot td:first-child {
   gap: 0 18px;
   margin-top: 20px;
 }
-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  margin: 35px 0;
-  padding: 24px 0;
-  border-top: 1px solid #dae2d0;
-  font: 8px var(--mono);
-  color: #8b9980;
-  letter-spacing: 0.02em;
-}
-footer b {
-  margin: 0 8px;
-  font-weight: 400;
-  color: #b1bba7;
-}
-footer div {
-  display: flex;
-  gap: 23px;
-}
-footer a {
-  text-decoration: none;
-}
-.embedded .topbar {
-  padding: 16px 24px;
-}
 .embedded main {
   max-width: 1100px;
   padding: 0 24px;
@@ -647,21 +605,6 @@ footer a {
 }
 .embedded .workspace {
   display: block;
-}
-.embedded .brand {
-  font-size: 14px;
-}
-.embedded .brand-mark {
-  font-size: 30px;
-}
-.embedded .intro .eyebrow {
-  font-size: 8px;
-}
-.embedded .model-pill {
-  font-size: 9px;
-}
-.embedded footer {
-  margin: 20px 0;
 }
 .embedded .panel {
   padding: 20px;
@@ -683,16 +626,13 @@ footer a {
     padding: 18px;
   }
   .metric {
-    padding: 18px 14px;
+    padding: 12px 14px;
   }
   .metric > span {
-    font-size: 7px;
+    font-size: 10px;
   }
   .metric strong {
     font-size: 28px;
-  }
-  .metric p {
-    font-size: 9px;
   }
   .panel {
     padding: 20px;
@@ -734,7 +674,7 @@ footer a {
     font-size: 31px;
   }
   .metric > span {
-    font-size: 8px;
+    font-size: 10px;
   }
   .results {
     gap: 16px;
@@ -754,13 +694,6 @@ footer a {
   }
   .embedded h1 {
     font-size: 23px;
-  }
-  footer {
-    align-items: start;
-  }
-  footer div {
-    gap: 12px;
-    flex-direction: column;
   }
 }
 @media (max-width: 480px) {
@@ -800,32 +733,14 @@ footer a {
     gap: 9px;
   }
   .metric {
-    padding: 18px 14px;
-  }
-  .metric:first-child {
-    grid-column: 1/-1;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 8px;
-  }
-  .metric:first-child strong {
-    grid-row: 1/3;
-    grid-column: 2;
-    margin: 0;
-  }
-  .metric:first-child p {
-    margin: 0;
+    padding: 12px 14px;
   }
   .metric strong {
-    font-size: 29px;
-    margin: 15px 0 12px;
+    font-size: clamp(20px, 6vw, 29px);
+    margin: 8px 0 0;
   }
   .metric > span {
-    font-size: 7px;
-  }
-  .metric p {
-    font-size: 9px;
+    font-size: 10px;
   }
   .panel {
     padding: 18px;
@@ -836,9 +751,6 @@ footer a {
   }
   .panel h2 {
     font-size: 18px;
-  }
-  .panel-heading .eyebrow {
-    font-size: 8px;
   }
   .tabs button {
     padding: 7px;
@@ -862,9 +774,6 @@ footer a {
   .embedded main {
     padding: 0 14px;
   }
-  .embedded .topbar {
-    padding: 15px;
-  }
   .embedded .intro {
     flex-direction: column;
     gap: 14px;
@@ -872,18 +781,45 @@ footer a {
   .embedded .intro .button {
     max-width: none;
   }
-  .embedded .model-pill {
-    font-size: 8px;
-  }
   .embedded .panel {
     padding: 16px;
-  }
-  .embedded footer {
-    font-size: 7px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+  }
+}
+
+:root:has(.embedded) {
+  background: transparent;
+}
+.embedded main {
+  padding: 0 12px 12px;
+}
+.embedded .intro {
+  padding: 12px 0 18px;
+}
+.embedded .panel.breakdown {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.embedded .panel-heading {
+  margin-bottom: 20px;
+}
+
+.embedded .intro h1 {
+  font-size: clamp(20px, 3vw, 27px);
+}
+@media (max-width: 480px) {
+  .embedded .intro {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .embedded .intro .button {
+    white-space: nowrap;
   }
 }

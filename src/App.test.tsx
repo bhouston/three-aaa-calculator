@@ -92,7 +92,7 @@ describe("editor and embed use the same calculation", () => {
     expect(screen.getByTestId("total-bandwidth").textContent).toBe(
       `${calculate(c).gbps.toFixed(2)}GB/s`,
     );
-    const edit = screen.getByRole("link", { name: "Open interactive calculator ↗" });
+    const edit = screen.getByRole("link", { name: "Edit ↗" });
     const back = readUrl(edit.getAttribute("href")!);
     expect(back.resultsOnly).toBe(false);
     expect(back.config).toEqual(c);
