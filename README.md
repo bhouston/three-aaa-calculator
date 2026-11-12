@@ -93,7 +93,7 @@ pnpm build
 pnpm preview
 ```
 
-GitHub Actions runs the checks on PRs and deploys green `main` builds to GitHub Pages. Vite uses relative asset URLs, supporting both a custom-domain root and a repository subpath. Configure Pages to use GitHub Actions and set the custom domain to `three-aaa-calculator.ben3d.ca`; its Cloudflare DNS-only CNAME points to `bhouston.github.io`. HTTPS is provided by GitHub Pages.
+GitHub Actions runs the checks on PRs and deploys green `main` builds to GitHub Pages. Vite uses relative asset URLs, supporting both a custom-domain root and a repository subpath. Configure Pages to use GitHub Actions and set the custom domain to `three-aaa-calculator.ben3d.ca`; its Cloudflare-proxied CNAME points to `bhouston.github.io`. The public hostname uses Cloudflare’s existing HTTPS configuration, with GitHub Pages as the origin.
 
 Model and component tests cover resource dependencies, resolution rounding, output-sized temporal work, allocation release, traffic scaling, serialization, invalid URLs, results-only mode, clipboard fallback, and source links.
 
