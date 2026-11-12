@@ -412,8 +412,18 @@ export default function App() {
             </section>
 
             <section className="panel breakdown">
-              <div className="panel-heading">
-                <h2>The Cost of a Frame</h2>
+              <div className="breakdown-toolbar">
+                {tab === "bandwidth" && (
+                  <div className="stacked-bar" aria-label="Bandwidth share by pass group">
+                    {groups.map((g) => (
+                      <span
+                        key={g.id}
+                        style={{ width: `${(g.gbps / result.gbps) * 100}%`, background: g.color }}
+                        title={`${g.id}: ${number(g.gbps)} GB/s`}
+                      />
+                    ))}
+                  </div>
+                )}
                 <div className="tabs" role="tablist" aria-label="Result breakdown">
                   <button
                     role="tab"
@@ -433,15 +443,6 @@ export default function App() {
               </div>
               {tab === "bandwidth" ? (
                 <>
-                  <div className="stacked-bar" aria-label="Bandwidth share by pass group">
-                    {groups.map((g) => (
-                      <span
-                        key={g.id}
-                        style={{ width: `${(g.gbps / result.gbps) * 100}%`, background: g.color }}
-                        title={`${g.id}: ${number(g.gbps)} GB/s`}
-                      />
-                    ))}
-                  </div>
                   <div className="legend">
                     {groups.map((g) => (
                       <span key={g.id}>
@@ -455,8 +456,8 @@ export default function App() {
                       <thead>
                         <tr>
                           <th>Pass</th>
-                          <th>Working grid</th>
-                          <th title="Logical reads plus writes per working pixel">B / pixel</th>
+                          <th>Resolution</th>
+                          <th title="Logical reads plus writes per working pixel">B/pixel</th>
                           <th>GB/s</th>
                         </tr>
                       </thead>
@@ -480,14 +481,6 @@ export default function App() {
                           </tr>
                         ))}
                       </tbody>
-                      <tfoot>
-                        <tr>
-                          <td>Total logical traffic</td>
-                          <td>{config.fps} frames / second</td>
-                          <td>—</td>
-                          <td>{number(result.gbps, 3)}</td>
-                        </tr>
-                      </tfoot>
                     </table>
                   </div>
                   {config.aa === "taau" && (
@@ -503,8 +496,8 @@ export default function App() {
                       <thead>
                         <tr>
                           <th>Allocation</th>
-                          <th>Grid</th>
-                          <th>B / pixel</th>
+                          <th>Resolution</th>
+                          <th>B/pixel</th>
                           <th>MB</th>
                         </tr>
                       </thead>
