@@ -52,7 +52,6 @@ export interface Config {
   ssrScale: number;
   ssgiScale: number;
   gtaoScale: number;
-  assetMemoryMB: number;
   costs: Record<CostKey, number>;
   memory: Record<MemoryKey, number>;
 }
@@ -74,7 +73,6 @@ export const defaultConfig: Config = {
   ssrScale: 0.5,
   ssgiScale: 0.5,
   gtaoScale: 0.5,
-  assetMemoryMB: 0,
   costs: {
     gbuffer: 22,
     motion: 10,
@@ -126,8 +124,8 @@ export interface Pass {
 export interface Resource {
   id: string;
   label: string;
-  size: Size | null;
-  bytesPerPixel: number | null;
+  size: Size;
+  bytesPerPixel: number;
   bytes: number;
   note: string;
 }
@@ -246,15 +244,6 @@ export function calculate(c: Config) {
     );
   }
   pass(c.aa === "spatial" ? "spatialOutput" : "output", canvas, "output");
-  if (c.assetMemoryMB > 0)
-    resources.push({
-      id: "assets",
-      label: "Scene assets (manual)",
-      size: null,
-      bytesPerPixel: null,
-      bytes: c.assetMemoryMB * 1e6,
-      note: "User-supplied textures, lightmaps, probes and geometry.",
-    });
   const bytesPerFrame = passes.reduce((sum, p) => sum + p.bytesPerFrame, 0);
   const memoryBytes = resources.reduce((sum, r) => sum + r.bytes, 0);
   const gbps = (bytesPerFrame * c.fps) / 1e9;
@@ -310,8 +299,6 @@ export function validateConfig(value: unknown): Config {
     )
   )
     throw new Error("Invalid resolution scale.");
-  if (result.assetMemoryMB < 0 || result.assetMemoryMB > 1e6)
-    throw new Error("Invalid asset memory.");
   return result;
 }
 export function configUrl(config: Config, resultsOnly = false, base = window.location.href) {
@@ -359,7 +346,7 @@ export function csv(config: Config) {
   const quote = (x: unknown) => `"${String(x).replaceAll('"', '""')}"`;
   const rows: unknown[][] = [
     ["Model revision", MODEL_REVISION],
-    ["Scenario", config.title],
+    ["Calculation", config.title],
     ["Target FPS", config.fps],
     ["Total GB/s", r.gbps],
     ["Total MB", r.memoryBytes / 1e6],
@@ -370,6 +357,6 @@ export function csv(config: Config) {
     rows.push([p.label, p.size.width, p.size.height, p.coefficient, p.bytesPerFrame, p.gbps]);
   rows.push([], ["Allocation", "Width", "Height", "Bytes/pixel", "Bytes"]);
   for (const a of r.resources)
-    rows.push([a.label, a.size?.width ?? "", a.size?.height ?? "", a.bytesPerPixel ?? "", a.bytes]);
+    rows.push([a.label, a.size.width, a.size.height, a.bytesPerPixel, a.bytes]);
   return rows.map((row) => row.map(quote).join(",")).join("\r\n");
 }

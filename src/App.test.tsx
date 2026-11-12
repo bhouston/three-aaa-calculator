@@ -17,6 +17,7 @@ describe("editor and embed use the same calculation", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: "The frame" })).toBeTruthy();
     expect(screen.queryByRole("combobox", { name: "Scenario preset" })).toBeNull();
+    expect(screen.queryByRole("spinbutton", { name: /Scene asset memory/ })).toBeNull();
     expect(document.body.textContent).not.toMatch(
       /survey|planning allowance|resolution chain|where the pixels go|95% coverage|50% coverage/i,
     );
@@ -84,7 +85,6 @@ describe("editor and embed use the same calculation", () => {
     const c = cloneConfig();
     c.ssgi = false;
     c.costs.beauty = 100;
-    c.assetMemoryMB = 42;
     window.history.replaceState(null, "", configUrl(c, true));
     render(<App />);
     expect(screen.queryByRole("complementary")).toBeNull();

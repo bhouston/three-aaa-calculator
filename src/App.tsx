@@ -361,22 +361,6 @@ export default function App() {
                   detail="Nominal quarter-screen coverage"
                 />
               </section>
-              <section className="control-section">
-                <div className="section-label">
-                  <span>04</span>
-                  <h2>Scene assets</h2>
-                </div>
-                <NumberField
-                  label="Scene asset memory"
-                  suffix="MB"
-                  value={config.assetMemoryMB}
-                  max={1e6}
-                  onChange={(n) => update("assetMemoryMB", n)}
-                />
-                <p className="help">
-                  Textures, geometry, lightmaps and probes are extra. Add their memory if known.
-                </p>
-              </section>
             </aside>
           )}
           <div className="results">
@@ -395,10 +379,7 @@ export default function App() {
                   {number(result.memoryBytes / 1e6)}
                   <small>MB</small>
                 </strong>
-                <p>
-                  {result.resources.length} named allocations
-                  {config.assetMemoryMB ? " + assets included" : " · assets excluded"}
-                </p>
+                <p>{result.resources.length} pipeline allocations</p>
               </div>
               <div className="metric">
                 <span>SCENE PIXELS</span>
@@ -517,8 +498,8 @@ export default function App() {
                         {result.resources.map((r) => (
                           <tr key={r.id}>
                             <td title={r.note}>{r.label}</td>
-                            <td>{r.size ? sizeText(r.size) : "Manual"}</td>
-                            <td>{r.bytesPerPixel ?? "—"}</td>
+                            <td>{sizeText(r.size)}</td>
+                            <td>{r.bytesPerPixel}</td>
                             <td>{number(r.bytes / 1e6, 3)}</td>
                           </tr>
                         ))}

@@ -101,14 +101,13 @@ describe("rendering budgets", () => {
     c.ssgiScale = 1;
     expect(calculate(c).resources.some((r) => r.id === "ssgiUpsample")).toBe(false);
   });
-  it("scales traffic with fps without scaling allocations; adds manual assets once", () => {
+  it("scales traffic with fps without scaling allocations", () => {
     const c = cloneConfig();
     const full = calculate(c);
     c.fps = 30;
-    c.assetMemoryMB = 123;
     const half = calculate(c);
     expect(half.gbps).toBe(full.gbps / 2);
-    expect(half.memoryBytes).toBe(full.memoryBytes + 123e6);
+    expect(half.memoryBytes).toBe(full.memoryBytes);
   });
   it("rounds each actual texture grid and handles zero-cost experiments", () => {
     const c = cloneConfig();
