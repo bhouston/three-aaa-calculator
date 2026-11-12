@@ -159,7 +159,7 @@ export default function App() {
   const [config, setConfig] = useState(initial.config);
   const [notice, setNotice] = useState(initial.error ?? "");
   const [fallbackCopy, setFallbackCopy] = useState("");
-  const [tab, setTab] = useState<"bandwidth" | "memory">("bandwidth");
+  const [tab, setTab] = useState<"bandwidth" | "usage">("bandwidth");
   const resultsOnly = initial.resultsOnly;
   const shareRef = useRef<HTMLTextAreaElement>(null);
   const result = useMemo(() => calculate(config), [config]);
@@ -251,7 +251,7 @@ export default function App() {
             <p className="intro-copy">
               {resultsOnly
                 ? `${sizeText(result.canvas)} canvas · ${sizeText(result.scene)} scene · ${config.fps} fps · ${config.aa.toUpperCase()}`
-                : "Explore the memory and bandwidth of a Three.js lighting pipeline. Change the frame, inspect the tradeoffs, and share the exact result."}
+                : "Explore the memory usage and memory bandwidth of a Three.js lighting pipeline. Change the frame, inspect the tradeoffs, and share the exact result."}
             </p>
           </div>
           {resultsOnly ? (
@@ -395,7 +395,7 @@ export default function App() {
           )}
           <div className="results">
             <section className="summary" aria-label="Totals">
-              <div className="metric dark">
+              <div className="metric">
                 <span>Memory Bandwidth</span>
                 <strong data-testid="total-bandwidth">
                   {number(result.gbps)}
@@ -434,10 +434,10 @@ export default function App() {
                   </button>
                   <button
                     role="tab"
-                    aria-selected={tab === "memory"}
-                    onClick={() => setTab("memory")}
+                    aria-selected={tab === "usage"}
+                    onClick={() => setTab("usage")}
                   >
-                    Memory
+                    Usage
                   </button>
                 </div>
               </div>
@@ -511,21 +511,8 @@ export default function App() {
                           </tr>
                         ))}
                       </tbody>
-                      <tfoot>
-                        <tr>
-                          <td>Total allocated</td>
-                          <td>Resident resources</td>
-                          <td>—</td>
-                          <td>{number(result.memoryBytes / 1e6, 3)}</td>
-                        </tr>
-                      </tfoot>
                     </table>
                   </div>
-                  <p className="table-note">
-                    Named resources are counted once. Includes materialized upsample targets. No
-                    aliasing between effects, MSAA attachments, browser surfaces or implicit driver
-                    allocations.
-                  </p>
                 </>
               )}
             </section>
@@ -602,7 +589,7 @@ export default function App() {
                     />
                   ))}
                 </div>
-                <h3>Memory · bytes per allocation pixel</h3>
+                <h3>Memory usage · bytes per allocation pixel</h3>
                 <div className="assumption-grid">
                   {Object.entries(memoryLabels).map(([key, label]) => (
                     <NumberField

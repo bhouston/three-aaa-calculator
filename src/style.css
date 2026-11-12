@@ -319,7 +319,8 @@ h2 {
 }
 .metric {
   background: #fff;
-  border: 1px solid var(--line);
+  color: #171717;
+  border: 1px solid #d9d9d9;
   border-radius: 10px;
   padding: 14px 16px;
   min-width: 0;
@@ -327,7 +328,7 @@ h2 {
 .metric > span {
   font-size: 11px;
   font-weight: 500;
-  color: #6a7b62;
+  color: inherit;
   white-space: nowrap;
 }
 .metric strong {
@@ -341,23 +342,10 @@ h2 {
 .metric strong small {
   font-size: 12px;
   letter-spacing: -0.02em;
-  color: #7c8d72;
+  color: inherit;
   margin-left: 6px;
 }
-.metric.dark {
-  background: #1c362c;
-  color: #e9f7dc;
-  border-color: #1c362c;
-}
-.metric.dark > span {
-  color: #b4caa0;
-}
-.metric.dark strong {
-  color: #d1eeac;
-}
-.metric.dark small {
-  color: #a4bb90;
-}
+
 .panel {
   background: #fff;
   border: 1px solid var(--line);
@@ -487,15 +475,6 @@ td:last-child {
   opacity: 0.14;
   max-width: calc(100% - 25px);
   border-radius: 2px;
-}
-tfoot td {
-  padding-top: 17px;
-  border: 0;
-  font-weight: 600;
-  color: #2d462d !important;
-}
-tfoot td:first-child {
-  font-size: 12px;
 }
 .table-note {
   font-size: 10px;

@@ -348,8 +348,8 @@ export function csv(config: Config) {
     ["Model revision", MODEL_REVISION],
     ["Calculation", config.title],
     ["Target FPS", config.fps],
-    ["Total GB/s", r.gbps],
-    ["Total MB", r.memoryBytes / 1e6],
+    ["Memory bandwidth (GB/s)", r.gbps],
+    ["Memory usage (MB)", r.memoryBytes / 1e6],
     [],
     ["Pass", "Width", "Height", "Bytes/work pixel", "Bytes/frame", "GB/s"],
   ];

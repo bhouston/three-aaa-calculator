@@ -28,7 +28,7 @@ describe("editor and embed use the same calculation", () => {
     expect(screen.getByRole("cell", { name: "Hi-Z build" })).toBeTruthy();
     fireEvent.click(screen.getByRole("checkbox", { name: "SSR" }));
     expect(screen.queryByRole("cell", { name: "Hi-Z build" })).toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: "Memory" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
     expect(screen.queryByText("Hi-Z pyramid")).toBeNull();
     fireEvent.click(screen.getByRole("checkbox", { name: "SSR" }));
     expect(screen.getByText("Hi-Z pyramid")).toBeTruthy();
@@ -40,7 +40,7 @@ describe("editor and embed use the same calculation", () => {
     const after = Number(screen.getByTestId("total-bandwidth").textContent!.replace("GB/s", ""));
     expect(before - after).toBeCloseTo(23.14, 1);
     await waitFor(() => expect(readUrl(window.location.href).config.ssgi).toBe(false));
-    fireEvent.click(screen.getByRole("tab", { name: "Memory" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
     expect(screen.queryByText("Upsampled SSGI")).toBeNull();
     expect(screen.getByText("Upsampled SSR")).toBeTruthy();
   });

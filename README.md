@@ -1,10 +1,10 @@
 # Three AAA Calculator
 
-A small Vite/React tool for exploring a Three.js lighting pipeline's **logical texture traffic and allocated GPU memory**.
+A small Vite/React tool for exploring a Three.js lighting pipeline's **memory bandwidth and memory usage**.
 
 **[Open the calculator](https://three-aaa-calculator.ben3d.ca)** · [The article](https://ben3d.ca/blog/aaa-quality-on-a-web-budget)
 
-Configure canvas pixel ratio, internal scene scale, independent SSR/SSGI/GTAO resolutions, denoising, transparents, reconstruction, and frame rate. Inspect each pass and allocation, edit the assumptions, and export CSV. Computation happens entirely in the browser; there is no backend or GPU benchmark on this page.
+Configure canvas pixel ratio, internal scene scale, independent SSR/SSGI/GTAO resolutions, denoising, transparents, reconstruction, and frame rate. Use the **Bandwidth** and **Usage** tabs to inspect each pass and allocation, edit the assumptions, and export CSV. Computation happens entirely in the browser; there is no backend or GPU benchmark on this page.
 
 ## Editor and results-only embeds
 
@@ -57,7 +57,7 @@ For each texture grid, dimensions are rounded down to whole pixels (minimum one)
 
 Per-pass traffic is `working pixels × logical bytes per working pixel × target fps`. This includes reads and writes; it is **not** measured DRAM traffic. Cache reuse, texture filtering, dependent reads, shader ALU, geometry, and pass overhead cannot be reduced to a universal frame-rate prediction.
 
-Memory is an inventory of **named resident allocations**, not bandwidth divided by frame rate. G-buffer and previous depth are shared and counted once. SSR automatically includes the Hi-Z build pass and pyramid allocation; disabling SSR removes both, even when SSGI remains enabled. Hi-Z has no independent toggle. Effect working sets, materialized upsample targets, and temporal history are separate. Upsampling is omitted when an effect already matches the scene grid. Disabling effects releases their own allocations while retaining inputs still used by other stages. Scene assets such as geometry, textures, lightmaps and probes are outside this total. No inter-effect aliasing, MSAA attachments, implicit driver resources, browser surfaces, live shadows, or bloom are modeled.
+Memory usage is an inventory of **named resident allocations**, not bandwidth divided by frame rate. G-buffer and previous depth are shared and counted once. SSR automatically includes the Hi-Z build pass and pyramid allocation; disabling SSR removes both, even when SSGI remains enabled. Hi-Z has no independent toggle. Effect working sets, materialized upsample targets, and temporal history are separate. Upsampling is omitted when an effect already matches the scene grid. Disabling effects releases their own allocations while retaining inputs still used by other stages. Scene assets such as geometry, textures, lightmaps and probes are outside this total. No inter-effect aliasing, MSAA attachments, implicit driver resources, browser surfaces, live shadows, or bloom are modeled.
 
 The explicit inventory includes SSR/AO upsample targets and an AO filter scratch target that were absent from the article's original rough memory total. Four-tap joint bilateral upsample coefficients are budgeted independently for each signal. Consequently the calculator is **not a transcription of the old approximate total**: the engine is the source for subsequent comparisons. All coefficients are editable and preserved in shared URLs.
 
