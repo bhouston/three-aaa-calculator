@@ -4,17 +4,17 @@ A small Vite/React tool for exploring a Three.js lighting pipeline's **logical t
 
 **[Open the calculator](https://three-aaa-calculator.ben3d.ca)** · [The article](https://ben3d.ca/blog/aaa-quality-on-a-web-budget)
 
-Configure canvas pixel ratio, internal scene scale, independent SSR/SSGI/GTAO resolutions, denoising, transparents, reconstruction, and frame rate. Inspect each pass and allocation, edit the assumptions, and export CSV or JSON. Computation happens entirely in the browser; there is no backend or GPU benchmark on this page.
+Configure canvas pixel ratio, internal scene scale, independent SSR/SSGI/GTAO resolutions, denoising, transparents, reconstruction, and frame rate. Inspect each pass and allocation, edit the assumptions, and export CSV. Computation happens entirely in the browser; there is no backend or GPU benchmark on this page.
 
 ## Editor and results-only embeds
 
-- **Copy editable link** preserves the scenario and opens all controls.
-- **Copy results link** opens the same calculation with two compact summary cards and the pass breakdown, without navigation or a footer. **Edit ↗** opens its full editor.
-- **Copy embed HTML** creates an iframe for the results-only view.
+- **Editable** preserves the scenario and opens all controls.
+- **Results Only** opens the same calculation with two compact summary cards and the pass breakdown, without navigation or a footer. **Edit ↗** opens its full editor.
+- **CSV** downloads the pass and allocation breakdown.
 
 The URL fragment contains the entire versioned configuration: toggles, dimensions, scales, coefficients, memory formats/working sets. An embed carries its own complete calculation inputs. URLs are UTF-8/base64url encoded and validated before use. Invalid or unsupported links show a notice and fall back to the default; they never silently migrate to another model version. `MODEL_REVISION` identifies this implementation. Any future change to the meaning of an encoded field or calculation must introduce a new configuration/model version and retain the old engine for existing links.
 
-To embed, paste the generated HTML into the article. The default iframe can scroll. For optional automatic height, give it an ID and add this to the **parent page**:
+To embed, use the copied Results Only URL in an iframe. The default iframe can scroll. For optional automatic height, give it an ID and add this to the **parent page**:
 
 ```html
 <iframe

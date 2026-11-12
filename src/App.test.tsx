@@ -65,7 +65,7 @@ describe("editor and embed use the same calculation", () => {
       fireEvent.click(screen.getByRole("checkbox", { name: effect }));
     expect(screen.getByTestId("total-bandwidth").textContent).toBe("0.30GB/s");
     expect(screen.getByTestId("total-memory").textContent).toBe("0.99MB");
-    fireEvent.click(screen.getByRole("button", { name: /Copy results link/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Results Only" }));
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalled());
     const restored = readUrl(vi.mocked(navigator.clipboard.writeText).mock.calls[0][0]);
     expect(restored.resultsOnly).toBe(true);
@@ -88,7 +88,7 @@ describe("editor and embed use the same calculation", () => {
     window.history.replaceState(null, "", configUrl(c, true));
     render(<App />);
     expect(screen.queryByRole("complementary")).toBeNull();
-    expect(screen.queryByRole("button", { name: /Copy/ })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Share" })).toBeNull();
     expect(screen.getByTestId("total-bandwidth").textContent).toBe(
       `${calculate(c).gbps.toFixed(2)}GB/s`,
     );
@@ -103,7 +103,7 @@ describe("editor and embed use the same calculation", () => {
   it("offers a selectable fallback when the clipboard is unavailable", async () => {
     vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error("Permission denied"));
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Copy editable link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Editable" }));
     const textarea = await screen.findByRole("textbox", { name: "Text to copy" });
     expect(readUrl((textarea as HTMLTextAreaElement).value).error).toBeUndefined();
   });

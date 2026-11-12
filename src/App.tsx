@@ -117,6 +117,35 @@ function Toggle({
     </label>
   );
 }
+function ActionIcon({ kind }: { kind: "share" | "download" }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {kind === "share" ? (
+        <>
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4" />
+        </>
+      ) : (
+        <>
+          <path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4" />
+        </>
+      )}
+    </svg>
+  );
+}
 function download(contents: string, type: string, filename: string) {
   const url = URL.createObjectURL(new Blob([contents], { type }));
   const a = document.createElement("a");
@@ -510,54 +539,27 @@ export default function App() {
 
             {!resultsOnly && (
               <section className="panel share">
-                <div>
-                  <h2>Share a calculation.</h2>
-                  <p>Every setting and coefficient travels with the link.</p>
-                </div>
+                <h2>Share</h2>
                 <div className="share-actions">
                   <button
                     className="button primary"
                     onClick={() => copy(embedUrl, "Results-only link copied.")}
                   >
-                    Copy results link ↗
+                    <ActionIcon kind="share" />
+                    Results Only
                   </button>
                   <button className="button" onClick={() => copy(editUrl, "Editable link copied.")}>
-                    Copy editable link
+                    <ActionIcon kind="share" />
+                    Editable
                   </button>
                   <button
                     className="button"
                     onClick={() =>
-                      copy(
-                        `<iframe src="${embedUrl}" title="Three.js lighting budget" width="100%" height="1400" loading="lazy" style="border:0;border-radius:16px"></iframe>`,
-                        "Embed HTML copied.",
-                      )
-                    }
-                  >
-                    Copy embed HTML
-                  </button>
-                  <button
-                    className="text-button"
-                    onClick={() =>
                       download(csv(config), "text/csv;charset=utf-8", "three-aaa-budget.csv")
                     }
                   >
-                    Download CSV ↓
-                  </button>
-                  <button
-                    className="text-button"
-                    onClick={() =>
-                      download(
-                        JSON.stringify(
-                          { modelRevision: MODEL_REVISION, config, results: result },
-                          null,
-                          2,
-                        ),
-                        "application/json",
-                        "three-aaa-budget.json",
-                      )
-                    }
-                  >
-                    Download JSON ↓
+                    <ActionIcon kind="download" />
+                    CSV
                   </button>
                 </div>
               </section>
