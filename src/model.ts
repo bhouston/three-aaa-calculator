@@ -53,26 +53,13 @@ export interface Config {
   ssrScale: number;
   ssgiScale: number;
   gtaoScale: number;
-  coverage: "50" | "95";
-  allowance: number;
   assetMemoryMB: number;
-  survey: {
-    date: string;
-    read50: number;
-    write50: number;
-    gather50: number;
-    scatter50: number;
-    read95: number;
-    write95: number;
-    gather95: number;
-    scatter95: number;
-  };
   costs: Record<CostKey, number>;
   memory: Record<MemoryKey, number>;
 }
 export const defaultConfig: Config = {
   version: 1,
-  title: "High · native 1080p",
+  title: "Lighting budget",
   width: 1920,
   height: 1080,
   dpr: 1,
@@ -89,20 +76,7 @@ export const defaultConfig: Config = {
   ssrScale: 0.5,
   ssgiScale: 0.5,
   gtaoScale: 0.5,
-  coverage: "50",
-  allowance: 0.5,
   assetMemoryMB: 0,
-  survey: {
-    date: "2026-11-12",
-    read50: 65.8718773039001,
-    write50: 80.35467980295566,
-    gather50: 442.0640809443508,
-    scatter50: 7.236098003529131,
-    read95: 0.67108864,
-    write95: 8.252518468770987,
-    gather95: 14.921675774134789,
-    scatter95: 0.6095238095238096,
-  },
   costs: {
     gbuffer: 22,
     motion: 10,
@@ -137,36 +111,6 @@ export const defaultConfig: Config = {
   },
 };
 export const cloneConfig = (config: Config = defaultConfig): Config => structuredClone(config);
-export const presetNames = [
-  "High · native 1080p",
-  "High · TAAU 50%",
-  "Reduced effects · 25%",
-  "SSGI off",
-  "Base · cached lighting",
-  "Lowest · 95% coverage",
-] as const;
-export function preset(name: string): Config {
-  const c = cloneConfig();
-  c.title = name;
-  if (name === presetNames[1]) {
-    c.sceneScale = 0.5;
-    c.aa = "taau";
-  }
-  if (name === presetNames[2]) c.ssrScale = c.ssgiScale = c.gtaoScale = 0.25;
-  if (name === presetNames[3]) c.ssgi = false;
-  if (name === presetNames[4] || name === presetNames[5]) {
-    c.ssr = c.ssgi = c.gtao = false;
-    c.aa = "spatial";
-  }
-  if (name === presetNames[5]) {
-    c.width = 390;
-    c.height = 844;
-    c.dpr = 0.5;
-    c.fps = 30;
-    c.coverage = "95";
-  }
-  return c;
-}
 export interface Size {
   width: number;
   height: number;
@@ -300,7 +244,7 @@ export function calculate(c: Config) {
       "TAAU color, lock + resolve",
       canvas,
       c.memory.taau,
-      "Output-sized. Traffic coefficient is a provisional allowance.",
+      "Output-sized. Traffic coefficient is a provisional estimate.",
     );
   }
   pass(c.aa === "spatial" ? "spatialOutput" : "output", canvas, "output");
@@ -316,9 +260,6 @@ export function calculate(c: Config) {
   const bytesPerFrame = passes.reduce((sum, p) => sum + p.bytesPerFrame, 0);
   const memoryBytes = resources.reduce((sum, r) => sum + r.bytes, 0);
   const gbps = (bytesPerFrame * c.fps) / 1e9;
-  const read = c.coverage === "50" ? c.survey.read50 : c.survey.read95;
-  const write = c.coverage === "50" ? c.survey.write50 : c.survey.write95;
-  const budget = Math.min(read, write) * c.allowance;
   return {
     canvas,
     scene,
@@ -330,9 +271,6 @@ export function calculate(c: Config) {
     bytesPerFrame,
     memoryBytes,
     gbps,
-    budget,
-    ratio: gbps / budget,
-    maxPlanningFps: bytesPerFrame > 0 ? (budget * 1e9) / bytesPerFrame : null,
   };
 }
 // A full configuration is required: old model versions never silently change meaning.
@@ -357,26 +295,13 @@ export function validateConfig(value: unknown): Config {
       if (!v || typeof v !== "object") throw new Error(`Invalid ${key}.`);
       for (const nested of Object.keys(fallback)) {
         const item = (v as Record<string, unknown>)[nested];
-        if (nested === "date") {
-          if (typeof item !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item))
-            throw new Error("Invalid snapshot date.");
-        } else if (
-          typeof item !== "number" ||
-          !Number.isFinite(item) ||
-          item < 0 ||
-          item > 1e7 ||
-          (key === "survey" && item === 0)
-        )
+        if (typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 1e7)
           throw new Error(`Invalid ${key}.${nested}.`);
         (result[key] as unknown as Record<string, unknown>)[nested] = item;
       }
     }
   }
-  if (
-    !["none", "spatial", "traa", "taau"].includes(result.aa) ||
-    !["50", "95"].includes(result.coverage)
-  )
-    throw new Error("Invalid mode.");
+  if (!["none", "spatial", "traa", "taau"].includes(result.aa)) throw new Error("Invalid mode.");
   if (![result.width, result.height].every((n) => Number.isInteger(n) && n >= 1 && n <= 16384))
     throw new Error("Invalid viewport dimensions.");
   if (!(result.dpr >= 0.05 && result.dpr <= 4) || !(result.fps >= 1 && result.fps <= 240))
@@ -387,12 +312,8 @@ export function validateConfig(value: unknown): Config {
     )
   )
     throw new Error("Invalid resolution scale.");
-  if (
-    !(result.allowance >= 0.01 && result.allowance <= 1) ||
-    result.assetMemoryMB < 0 ||
-    result.assetMemoryMB > 1e6
-  )
-    throw new Error("Invalid allowance or asset memory.");
+  if (result.assetMemoryMB < 0 || result.assetMemoryMB > 1e6)
+    throw new Error("Invalid asset memory.");
   return result;
 }
 export function configUrl(config: Config, resultsOnly = false, base = window.location.href) {

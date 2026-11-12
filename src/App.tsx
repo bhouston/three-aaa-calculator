@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   calculate,
-  cloneConfig,
   configUrl,
   costLabels,
   csv,
   memoryLabels,
   MODEL_REVISION,
-  preset,
-  presetNames,
   readUrl,
 } from "./model";
 import type { Config, CostKey, MemoryKey } from "./model";
@@ -175,7 +172,6 @@ export default function App() {
       setNotice("Select and copy the text below.");
     }
   }
-  const status = result.ratio <= 1;
   const maxPass = Math.max(1e-12, ...result.passes.map((p) => p.gbps));
   const groups = Object.entries(colors)
     .map(([id, color]) => ({
@@ -210,7 +206,7 @@ export default function App() {
       <main>
         <section className="intro">
           <div>
-            <p className="eyebrow">RENDERING / RESOURCE PLANNING</p>
+            <p className="eyebrow">RENDERING / MEMORY & BANDWIDTH</p>
             <h1>
               {resultsOnly ? (
                 config.title
@@ -246,32 +242,10 @@ export default function App() {
               <section className="control-section">
                 <div className="section-label">
                   <span>01</span>
-                  <h2>Starting point</h2>
+                  <h2>Calculation</h2>
                 </div>
                 <label className="field">
-                  <span>Scenario preset</span>
-                  <select
-                    aria-label="Scenario preset"
-                    value={
-                      presetNames.includes(config.title as (typeof presetNames)[number])
-                        ? config.title
-                        : ""
-                    }
-                    onChange={(e) => {
-                      setConfig(preset(e.target.value));
-                      setNotice("Preset loaded.");
-                    }}
-                  >
-                    {!presetNames.includes(config.title as (typeof presetNames)[number]) && (
-                      <option value="">Custom scenario</option>
-                    )}
-                    {presetNames.map((n) => (
-                      <option key={n}>{n}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Scenario title</span>
+                  <span>Calculation title</span>
                   <input
                     maxLength={100}
                     value={config.title}
@@ -396,26 +370,8 @@ export default function App() {
               <section className="control-section">
                 <div className="section-label">
                   <span>04</span>
-                  <h2>Planning allowance</h2>
+                  <h2>Scene assets</h2>
                 </div>
-                <label className="field">
-                  <span>Survey coverage reference</span>
-                  <select
-                    value={config.coverage}
-                    onChange={(e) => update("coverage", e.target.value as Config["coverage"])}
-                  >
-                    <option value="50">50% · median / high</option>
-                    <option value="95">95% · lower tail / lowest</option>
-                  </select>
-                </label>
-                <NumberField
-                  label="Use of slower linear probe"
-                  suffix="%"
-                  value={Math.round(config.allowance * 100)}
-                  min={1}
-                  max={100}
-                  onChange={(n) => update("allowance", n / 100)}
-                />
                 <NumberField
                   label="Scene asset memory"
                   suffix="MB"
@@ -461,26 +417,7 @@ export default function App() {
                 </p>
               </div>
             </section>
-            <section
-              className={`allowance-card ${status ? "within" : "over"}`}
-              aria-label="Budget comparison"
-            >
-              <div>
-                <span className="status-dot" />
-                <h2>{status ? "Within the planning allowance" : "Above the planning allowance"}</h2>
-                <strong>{number(result.ratio * 100, 0)}%</strong>
-              </div>
-              <div className="allowance-meter">
-                <span style={{ width: `${Math.min(100, result.ratio * 100)}%` }} />
-              </div>
-              <p>
-                {number(result.gbps)} of {number(result.budget, 3)} GB/s · {config.coverage}%
-                coverage reference · {number(config.allowance * 100, 0)}% of the slower linear probe
-              </p>
-              <small>
-                A budget comparison, not a measured frame rate or a guarantee of device coverage.
-              </small>
-            </section>
+
             <section className="panel breakdown">
               <div className="panel-heading">
                 <div>
@@ -567,7 +504,7 @@ export default function App() {
                     Bandwidth = working pixels × logical bytes per pixel × fps. Effect scales apply
                     to the scene; reconstruction and output use their listed grids.
                     {config.aa === "taau" &&
-                      " TAAU traffic is a provisional allowance, not a measured implementation cost."}
+                      " TAAU traffic is a provisional estimate, not a measured implementation cost."}
                   </p>
                 </>
               ) : (
@@ -610,52 +547,13 @@ export default function App() {
                 </>
               )}
             </section>
-            <section className="panel anatomy">
-              <div>
-                <p className="eyebrow">RESOLUTION CHAIN</p>
-                <h2>Where the pixels go.</h2>
-              </div>
-              <div className="pipeline">
-                <div>
-                  <small>CSS VIEWPORT × DPR</small>
-                  <strong>
-                    {integer(config.width)} × {integer(config.height)} <em>× {config.dpr}</em>
-                  </strong>
-                </div>
-                <span>→</span>
-                <div>
-                  <small>CANVAS</small>
-                  <strong>{sizeText(result.canvas)}</strong>
-                </div>
-                <span>←</span>
-                <div>
-                  <small>SCENE × {number(config.sceneScale, 2)}</small>
-                  <strong>{sizeText(result.scene)}</strong>
-                </div>
-              </div>
-              <div className="chips">
-                {(["ssr", "ssgi", "gtao"] as const)
-                  .filter((id) => config[id])
-                  .map((id) => (
-                    <span key={id}>
-                      {id.toUpperCase()} <b>{sizeText(result[id])}</b>
-                    </span>
-                  ))}
-                {!config.ssr && !config.ssgi && !config.gtao && <span>Cached lighting only</span>}
-                <span>{config.aa.toUpperCase()}</span>
-              </div>
-              <p className="help">
-                Pixel ratio changes the canvas itself. Scene scale changes the internal frame. Joint
-                bilateral upsampling brings effect results to the scene; TAAU brings the scene to
-                the canvas. Browser compositing remains additional.
-              </p>
-            </section>
+
             {!resultsOnly && (
               <section className="panel share">
                 <div>
                   <p className="eyebrow">MAKE IT REPRODUCIBLE</p>
                   <h2>Share a calculation.</h2>
-                  <p>Every setting, coefficient and survey threshold travels with the link.</p>
+                  <p>Every setting and coefficient travels with the link.</p>
                 </div>
                 <div className="share-actions">
                   <button
@@ -763,89 +661,6 @@ export default function App() {
                 </div>
               </details>
             )}
-            <section className="panel sources">
-              <p className="eyebrow">MEASURED REFERENCE POINTS</p>
-              <h2>Grounded in Web3D Survey.</h2>
-              <p>
-                Snapshot {config.survey.date}. Higher throughput is better. “95% coverage” is a
-                lower-tail threshold, approximately the fifth performance percentile. Each metric
-                describes submitted runs, with its own population; this is not demonstrated renderer
-                coverage.
-              </p>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Probe</th>
-                      <th>Median / 50%</th>
-                      <th>95% coverage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      ["Linear read", "read-linear", "read50", "read95"],
-                      ["Gather read · 16 KB", "read-gather-16kb", "gather50", "gather95"],
-                      ["Linear write", "write-linear", "write50", "write95"],
-                      ["Scatter write · 16 KB", "write-scatter-16kb", "scatter50", "scatter95"],
-                    ].map(([label, slug, key50, key95]) => (
-                      <tr key={slug}>
-                        <td>
-                          <a
-                            href={`https://web3dsurvey.com/webgpu/performance/${slug}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {label} ↗
-                          </a>
-                        </td>
-                        <td>
-                          {number(config.survey[key50 as keyof Config["survey"]] as number, 3)} GB/s
-                        </td>
-                        <td>
-                          {number(config.survey[key95 as keyof Config["survey"]] as number, 3)} GB/s
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="help">
-                16 KB gather can benefit from cache reuse; scatter writes a small footprint once.
-                Neither is a universal texture or render-target limit. The planning allowance uses
-                the slower linear read/write rate, scaled by your chosen fraction.
-              </p>
-              {!resultsOnly && (
-                <details>
-                  <summary>Override the snapshot</summary>
-                  <label className="field">
-                    <span>Snapshot date</span>
-                    <input
-                      type="date"
-                      value={config.survey.date}
-                      onChange={(e) => {
-                        if (e.target.value)
-                          update("survey", { ...config.survey, date: e.target.value });
-                      }}
-                    />
-                  </label>
-                  <div className="assumption-grid">
-                    {Object.entries(config.survey)
-                      .filter(([k]) => k !== "date")
-                      .map(([key, value]) => (
-                        <NumberField
-                          key={key}
-                          label={key.replace("50", " · median").replace("95", " · 95% coverage")}
-                          suffix="GB/s"
-                          value={value as number}
-                          min={0.000001}
-                          step={0.1}
-                          onChange={(n) => update("survey", { ...config.survey, [key]: n })}
-                        />
-                      ))}
-                  </div>
-                </details>
-              )}
-            </section>
           </div>
         </div>
         <footer>
@@ -859,9 +674,6 @@ export default function App() {
               rel="noreferrer"
             >
               Read the article ↗
-            </a>
-            <a href="https://github.com/bhouston/webgpu-bench" target="_blank" rel="noreferrer">
-              Benchmark methodology ↗
             </a>
           </div>
         </footer>

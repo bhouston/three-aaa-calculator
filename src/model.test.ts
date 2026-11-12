@@ -1,26 +1,27 @@
 import { describe, expect, it } from "vitest";
-import {
-  calculate,
-  cloneConfig,
-  configUrl,
-  csv,
-  preset,
-  presetNames,
-  readUrl,
-  validateConfig,
-} from "./model";
+import { calculate, cloneConfig, configUrl, csv, readUrl, validateConfig } from "./model";
 
+function cachedConfig() {
+  const c = cloneConfig();
+  c.ssr = c.ssgi = c.gtao = false;
+  c.aa = "spatial";
+  return c;
+}
 describe("rendering budgets", () => {
-  it("reproduces the cached-lighting reference and lowest phone without an output-sized upscale", () => {
-    const base = calculate(preset(presetNames[4]));
+  it("calculates cached lighting at native and reduced pixel ratios without an extra upscale", () => {
+    const base = calculate(cachedConfig());
     expect(base.bytesPerFrame).toBe(1920 * 1080 * 123);
     expect(base.memoryBytes).toBe(1920 * 1080 * 12);
-    const low = calculate(preset(presetNames[5]));
+    const phone = cachedConfig();
+    phone.width = 390;
+    phone.height = 844;
+    phone.dpr = 0.5;
+    phone.fps = 30;
+    const low = calculate(phone);
     expect(low.canvas).toEqual({ width: 195, height: 422, pixels: 82290 });
     expect(low.scene).toEqual(low.canvas);
     expect(low.gbps).toBeCloseTo(0.3036501, 7);
     expect(low.memoryBytes).toBe(987480);
-    expect(low.ratio).toBeLessThan(1);
     expect(low.resources.some((r) => /history|upsample/i.test(r.label))).toBe(false);
   });
   it("counts all materialized upsample targets and the AO filter scratch", () => {
@@ -105,16 +106,14 @@ describe("rendering budgets", () => {
     c.ssgi = false;
     for (const key of Object.keys(c.costs) as (keyof typeof c.costs)[]) c.costs[key] = 0;
     expect(calculate(c).gbps).toBe(0);
-    expect(calculate(c).maxPlanningFps).toBeNull();
   });
 });
 describe("complete, versioned links", () => {
   it("round-trips every field in editor and results modes, including Unicode and edited assumptions", () => {
-    const c = preset(presetNames[5]);
+    const c = cachedConfig();
     c.title = "Phone · 日本語 🌱";
     c.costs.taau = 222;
     c.memory.hdr = 4;
-    c.survey.read95 = 3.2;
     for (const view of [false, true]) {
       const url = configUrl(c, view, "https://example.com/nested/?old=1#old");
       const parsed = readUrl(url);
@@ -131,7 +130,6 @@ describe("complete, versioned links", () => {
     expect(() => validateConfig({ ...cloneConfig(), version: 2 })).toThrow(/version/);
     expect(() => validateConfig({ ...cloneConfig(), dpr: NaN })).toThrow();
     expect(() => validateConfig({ ...cloneConfig(), width: 0 })).toThrow();
-    expect(() => validateConfig({ ...cloneConfig(), coverage: "99" })).toThrow();
     expect(() => validateConfig({ ...cloneConfig(), costs: {} })).toThrow();
   });
   it("exports quoted, reproducible pass and allocation details", () => {
