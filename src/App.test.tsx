@@ -21,6 +21,17 @@ describe("editor and embed use the same calculation", () => {
       /survey|planning allowance|resolution chain|where the pixels go|95% coverage|50% coverage/i,
     );
   });
+  it("automatically removes and restores the Hi-Z calculation with SSR", () => {
+    render(<App />);
+    expect(screen.queryByRole("checkbox", { name: "Hi-Z pyramid" })).toBeNull();
+    expect(screen.getByRole("cell", { name: "Hi-Z build" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("checkbox", { name: "SSR" }));
+    expect(screen.queryByRole("cell", { name: "Hi-Z build" })).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Memory" }));
+    expect(screen.queryByText("Hi-Z pyramid")).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox", { name: "SSR" }));
+    expect(screen.getByText("Hi-Z pyramid")).toBeTruthy();
+  });
   it("updates the frame and releases SSGI costs, with a restorable URL", async () => {
     render(<App />);
     const before = Number(screen.getByTestId("total-bandwidth").textContent!.replace("GB/s", ""));

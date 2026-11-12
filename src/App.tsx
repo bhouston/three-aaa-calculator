@@ -355,12 +355,6 @@ export default function App() {
                   </div>
                 ))}
                 <Toggle
-                  label="Hi-Z pyramid"
-                  checked={config.hiz}
-                  onChange={(b) => update("hiz", b)}
-                  detail="Allocated only when SSR or SSGI uses it"
-                />
-                <Toggle
                   label="Transparents + glass"
                   checked={config.transparent}
                   onChange={(b) => update("transparent", b)}

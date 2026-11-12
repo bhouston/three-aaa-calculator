@@ -50,6 +50,23 @@ describe("rendering budgets", () => {
     expect(bare.resources.map((r) => r.id)).toEqual(["depth", "beauty"]);
     expect(bare.passes.map((p) => p.id)).toEqual(["beauty", "transparent", "output"]);
   });
+  it("includes Hi-Z exactly when SSR is enabled, regardless of legacy toggle values", () => {
+    const c = cloneConfig();
+    // Legacy links cannot disable an input required by SSR.
+    const legacy = validateConfig({ ...c, hiz: false });
+    expect(calculate(legacy).passes.find((p) => p.id === "hiz")?.bytesPerFrame).toBe(
+      1920 * 1080 * c.costs.hiz,
+    );
+    expect(calculate(legacy).resources.find((r) => r.id === "hiz")?.bytes).toBe(
+      1920 * 1080 * c.memory.hiz,
+    );
+    c.ssr = false;
+    expect(c.ssgi).toBe(true);
+    const withoutSSR = calculate(c);
+    expect(withoutSSR.passes.some((p) => p.id === "hiz")).toBe(false);
+    expect(withoutSSR.resources.some((r) => r.id === "hiz")).toBe(false);
+    expect("hiz" in legacy).toBe(false);
+  });
   it("quarters scene resources while preserving output-sized TAAU memory and traffic", () => {
     const c = cloneConfig();
     c.aa = "taau";

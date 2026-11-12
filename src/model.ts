@@ -48,7 +48,6 @@ export interface Config {
   gtao: boolean;
   ssrDenoise: boolean;
   ssgiDenoise: boolean;
-  hiz: boolean;
   transparent: boolean;
   ssrScale: number;
   ssgiScale: number;
@@ -71,7 +70,6 @@ export const defaultConfig: Config = {
   gtao: true,
   ssrDenoise: true,
   ssgiDenoise: true,
-  hiz: true,
   transparent: true,
   ssrScale: 0.5,
   ssgiScale: 0.5,
@@ -183,11 +181,11 @@ export function calculate(c: Config) {
   }
   resource("beauty", "HDR beauty", scene, c.memory.hdr);
   if (histories) resource("previousDepth", "Shared previous depth", scene, c.memory.previousDepth);
-  if (c.hiz && (c.ssr || c.ssgi)) {
-    pass("hiz", scene, "shared");
+  if (c.ssr) {
+    pass("hiz", scene, "ssr");
     resource(
       "hiz",
-      "Shared Hi-Z pyramid",
+      "Hi-Z pyramid",
       scene,
       c.memory.hiz,
       "Approximate bytes per base pixel, including mips.",
